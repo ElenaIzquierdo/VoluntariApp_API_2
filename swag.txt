@@ -1,0 +1,42 @@
+swagger: "2.0"
+info:
+  description: "This VoluntriApp API Swagger."
+  version: "1.0.0"
+  title: "VoluntariApp"
+host: "127.0.0.1:8000"
+basePath: "/voluntariapp"
+tags:
+- name: "user"
+  description: "Operations about user"
+schemes:
+- "http"
+paths:
+  /user:
+    get:
+      tags:
+      - "user"
+      summary: "Get all users"
+      description: ""
+      operationId: "allUsers"
+      produces:
+      - "application/json"
+      responses:
+        200:
+          description: "Successful operation"
+        401:
+          description: "Token not provided or invalid token"
+        405:
+          description: "Invalid input"
+
+definitions:
+  User:
+    type: "object"
+    properties:
+      email:
+        type: "string"
+      username:
+        type: "string"
+
+externalDocs:
+  description: "Find out more about Swagger"
+  url: "http://swagger.io"
