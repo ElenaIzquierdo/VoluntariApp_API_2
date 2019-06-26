@@ -19,4 +19,6 @@ urlpatterns = [
     path('rate', views.ListRateView.as_view(), name="rate-all"),
     path('rate/<int:pk>', views.RateDetailView.as_view(), name="rate-detail"),
     path('rate/event/<int:pk>', views.RateFromEventView.as_view(), name="rate-from-event"),
+
+    path('event/<int:pk>/attendee', views.AttendeeView.as_view(), name="rate-all"),
 ]

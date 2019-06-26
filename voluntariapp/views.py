@@ -1,8 +1,8 @@
 # voluntariapp/views.py
 from rest_framework import generics
 from rest_framework.parsers import MultiPartParser, JSONParser
-from .models import Event, CustomUser, Comment, ForumTheme, Rate
-from .serializers import EventSerializer, UserSerializer, CommentSerializer, ForumThemeSerializer, RateSerializer
+from .models import Event, CustomUser, Comment, ForumTheme, Rate, EventAttendee
+from .serializers import EventSerializer, UserSerializer, CommentSerializer, ForumThemeSerializer, RateSerializer, EventAttendeeSerializer
 from django.http import JsonResponse
 from rest_framework import status
 from rest_framework.response import Response
@@ -405,6 +405,42 @@ class RateFromEventView(generics.RetrieveUpdateDestroyAPIView):
                 },
                 status=status.HTTP_404_NOT_FOUND
             )
+
+class AttendeeView(generics.ListAPIView):
+    queryset = EventAttendee.objects.all()
+    serializer_class = EventAttendeeSerializer
+
+    def post(self, request, *args, **kwargs):
+        try:
+            a_event = Event.objects.get(pk=kwargs["pk"])
+            EventAttendee.objects.create(user=request.user, event=a_event)
+            return Response(status=status.HTTP_201_CREATED)
+        except Event.DoesNotExist:
+            return Response(
+                data={
+                    "message": "Event with id: {} does not exist".format(kwargs["pk"])
+                },
+                status=status.HTTP_404_NOT_FOUND
+            )
+
+    "UnAttend function"
+
+    def delete(self, request, *args, **kwargs):
+        try:
+            event = Event.objects.get(pk=kwargs["pk"])
+            a_attendee = self.queryset.get(event=event, user=request.user)
+            a_attendee.delete()
+            return Response(status=status.HTTP_204_NO_CONTENT)
+        except (Event.DoesNotExist, EventAttendee.DoesNotExist) as e:
+            return Response(
+                data={
+                    "message": "Event with id: {} does not exist or EventAttendee from user: {} does not exist".format(
+                        kwargs["pk"], request.user)
+                },
+                status=status.HTTP_404_NOT_FOUND
+            )
+
+
 
 
 

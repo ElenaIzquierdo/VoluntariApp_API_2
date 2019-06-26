@@ -26,3 +26,8 @@ class RateSerializer(serializers.ModelSerializer):
     class Meta:
         model = models.Rate
         fields = ("id", "event", "rate","description")
+
+class EventAttendeeSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = models.EventAttendee
+        fields = ("id", "user", "event","attending")
