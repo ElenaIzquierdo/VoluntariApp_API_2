@@ -21,3 +21,8 @@ class ForumThemeSerializer(serializers.ModelSerializer):
     class Meta:
         model = models.ForumTheme
         fields = ("id","title","finished","description","tasks")
+
+class RateSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = models.Rate
+        fields = ("id", "event", "rate","description")

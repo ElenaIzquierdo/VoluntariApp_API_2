@@ -14,5 +14,9 @@ urlpatterns = [
 
     path('comment', views.ListCommentView.as_view(), name="comments-all"),
     path('comment/<int:pk>', views.CommentDetailView.as_view(), name="comments-detail"),
-    path('comment/forum/<int:pk>', views.CommentFromIssueView.as_view(), name="comments-from-issue"),
+    path('comment/forum/<int:pk>', views.CommentFromThemeView.as_view(), name="comments-from-theme"),
+
+    path('rate', views.ListRateView.as_view(), name="rate-all"),
+    path('rate/<int:pk>', views.RateDetailView.as_view(), name="rate-detail"),
+    path('rate/event/<int:pk>', views.RateFromEventView.as_view(), name="rate-from-event"),
 ]
