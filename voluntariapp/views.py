@@ -68,10 +68,88 @@ class ForumThemeListView(generics.ListAPIView):
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
+class ForumThemeDetailView(generics.RetrieveUpdateDestroyAPIView):
+    """
+        GET forumtheme/:id/
+        PUT forumtheme/:id/
+        DELETE forumtheme/:id/
+        """
+    queryset = ForumTheme.objects.all()
+    parser_classes = (MultiPartParser, JSONParser)
+    serializer_class = ForumThemeSerializer
+
+    def get(self, request, *args, **kwargs):
+        try:
+            a_theme = self.queryset.get(pk=kwargs["pk"])
+            serializer = ForumThemeSerializer(a_theme, context={'request': request})
+            return Response(serializer.data)
+        except ForumTheme.DoesNotExist:
+            return Response(
+                data={
+                    "message": "Forum Theme with id: {} does not exist".format(kwargs["pk"])
+                },
+                status=status.HTTP_404_NOT_FOUND
+            )
+
+    def put(self, request, *args, **kwargs):
+        try:
+            a_theme = self.queryset.get(pk=kwargs["pk"])
+            serializer = ForumThemeSerializer()
+            if a_theme.creator == request.user:
+                data = request.data.dict()
+                updated_theme = serializer.update(a_theme, data)
+                return JsonResponse(ForumThemeSerializer(updated_theme).data, status=status.HTTP_200_OK)
+            else:
+                return JsonResponse(
+                    data={
+                        "message": "You are not the author of the theme {}!".format(kwargs["pk"])
+                    },
+                    status=status.HTTP_403_FORBIDDEN
+                )
+        except ForumTheme.DoesNotExist:
+            return JsonResponse(
+                data={
+                    "message": "Theme with id: {} does not exist".format(kwargs["pk"])
+                },
+                status=status.HTTP_404_NOT_FOUND
+            )
+
+    def delete(self, request, *args, **kwargs):
+        try:
+            a_theme = self.queryset.get(pk=kwargs["pk"])
+            if a_theme.creator == request.user:
+                a_theme.delete()
+                return Response(status=status.HTTP_204_NO_CONTENT)
+            else:
+                return Response(
+                    data={
+                        "message": "You are not the original author of theme {}!".format(kwargs["pk"])
+                    },
+                    status=status.HTTP_403_FORBIDDEN
+                )
+        except ForumTheme.DoesNotExist:
+            return Response(
+                data={
+                    "message": "Theme with id: {} does not exist".format(kwargs["pk"])
+                },
+                status=status.HTTP_404_NOT_FOUND
+            )
+
+
 class ListCommentView(generics.ListAPIView):
     queryset = Comment.objects.all()
     parser_classes = (MultiPartParser, JSONParser,)
     serializer_class = CommentSerializer
+
+    def get(self, request, *args, **kwargs):
+        try:
+            queryset = Comment.objects.all()
+            serializer = CommentSerializer(queryset, many=True, context={'request': request})
+            return Response(serializer.data)
+
+        except Comment.DoesNotExist:
+            content = {'please move along': 'nothing to see here'}
+            return Response(content, status=status.HTTP_404_NOT_FOUND)
 
     def post(self, request):
         data = {"author": request.user.id, "created_date": timezone.now()}
@@ -149,6 +227,24 @@ class CommentDetailView(generics.RetrieveUpdateDestroyAPIView):
                 status=status.HTTP_404_NOT_FOUND
             )
 
+class CommentFromIssueView(generics.RetrieveUpdateDestroyAPIView):
+    queryset = Comment.objects.all()
+    parser_classes = (MultiPartParser, JSONParser)
+    serializer_class = CommentSerializer
+
+    def get(self, request, *args, **kwargs):
+        try:
+            a_issue = ForumTheme.objects.get(pk=kwargs["pk"])
+            comments = self.queryset.filter(forumtheme=kwargs["pk"])
+            serializer = CommentSerializer(comments, many=True, context={'request': request})
+            return Response(serializer.data)
+        except ForumTheme.DoesNotExist:
+            return Response(
+                data={
+                    "message": "Issue with id: {} does not exist".format(kwargs["pk"])
+                },
+                status=status.HTTP_404_NOT_FOUND
+            )
 
 
 
