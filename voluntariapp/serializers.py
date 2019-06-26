@@ -10,7 +10,7 @@ class UserSerializer(serializers.ModelSerializer):
 class EventSerializer(serializers.ModelSerializer):
     class Meta:
         model = models.Event
-        fields = ('name','type','start_date','end_date','description','attendance',)
+        fields = ('id','name','type','start_date','end_date','description','attendance',)
 
 class CommentSerializer(serializers.ModelSerializer):
     class Meta:

@@ -45,6 +45,73 @@ class EventListView(generics.ListAPIView):
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
+class EventDetailView(generics.RetrieveUpdateDestroyAPIView):
+    """
+        GET event/:id/
+        PUT event/:id/
+        DELETE event/:id/
+        """
+    queryset = Event.objects.all()
+    parser_classes = (MultiPartParser, JSONParser)
+    serializer_class = EventSerializer
+
+    def get(self, request, *args, **kwargs):
+        try:
+            a_event = self.queryset.get(pk=kwargs["pk"])
+            serializer = EventSerializer(a_event, context={'request': request})
+            return Response(serializer.data)
+        except Event.DoesNotExist:
+            return Response(
+                data={
+                    "message": "Event with id: {} does not exist".format(kwargs["pk"])
+                },
+                status=status.HTTP_404_NOT_FOUND
+            )
+
+    def put(self, request, *args, **kwargs):
+        try:
+            a_event = self.queryset.get(pk=kwargs["pk"])
+            serializer = EventSerializer()
+            if a_event.creator == request.user:
+                data = request.data.dict()
+                updated_event = serializer.update(a_event, data)
+                return JsonResponse(EventSerializer(updated_event).data, status=status.HTTP_200_OK)
+            else:
+                return JsonResponse(
+                    data={
+                        "message": "You are not the author of the event {}!".format(kwargs["pk"])
+                    },
+                    status=status.HTTP_403_FORBIDDEN
+                )
+        except Event.DoesNotExist:
+            return JsonResponse(
+                data={
+                    "message": "Event with id: {} does not exist".format(kwargs["pk"])
+                },
+                status=status.HTTP_404_NOT_FOUND
+            )
+
+    def delete(self, request, *args, **kwargs):
+        try:
+            a_event = self.queryset.get(pk=kwargs["pk"])
+            if a_event.creator == request.user:
+                a_event.delete()
+                return Response(status=status.HTTP_204_NO_CONTENT)
+            else:
+                return Response(
+                    data={
+                        "message": "You are not the original author of the event {}!".format(kwargs["pk"])
+                    },
+                    status=status.HTTP_403_FORBIDDEN
+                )
+        except Event.DoesNotExist:
+            return Response(
+                data={
+                    "message": "Event with id: {} does not exist".format(kwargs["pk"])
+                },
+                status=status.HTTP_404_NOT_FOUND
+            )
+
 class ForumThemeListView(generics.ListAPIView):
     queryset = ForumTheme.objects.all()
     parser_classes = (MultiPartParser, JSONParser,)
