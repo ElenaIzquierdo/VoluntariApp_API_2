@@ -2,7 +2,8 @@
 from rest_framework import generics
 from rest_framework.parsers import MultiPartParser, JSONParser
 from .models import Event, CustomUser, Comment, ForumTheme, Rate, EventAttendee
-from .serializers import EventSerializer, UserSerializer, CommentSerializer, ForumThemeSerializer, RateSerializer, EventAttendeeSerializer
+from .serializers import EventSerializer, UserSerializer, CommentSerializer, ForumThemeSerializer, RateSerializer, \
+                        EventAttendeeSerializer, EventGetSerializer
 from django.http import JsonResponse
 from rest_framework import status
 from rest_framework.response import Response
@@ -30,7 +31,7 @@ class EventListView(generics.ListAPIView):
     def get(self, request, *args, **kwargs):
         try:
             queryset = Event.objects.all()
-            serializer = EventSerializer(queryset, many=True, context={'request': request})
+            serializer = EventGetSerializer(queryset, many=True, context={'request': request})
             return Response(serializer.data)
 
         except Event.DoesNotExist:
@@ -406,9 +407,37 @@ class RateFromEventView(generics.RetrieveUpdateDestroyAPIView):
                 status=status.HTTP_404_NOT_FOUND
             )
 
+class ListEventAttendeeView(generics.ListAPIView):
+    queryset = EventAttendee.objects.all()
+    parser_classes = (MultiPartParser, JSONParser,)
+    serializer_class = EventAttendeeSerializer
+
+    def get(self, request, *args, **kwargs):
+        try:
+            queryset = EventAttendee.objects.all()
+            serializer = EventAttendeeSerializer(queryset, many=True, context={'request': request})
+            return Response(serializer.data)
+
+        except EventAttendee.DoesNotExist:
+            content = {'please move along': 'nothing to see here'}
+            return Response(content, status=status.HTTP_404_NOT_FOUND)
+
 class AttendeeView(generics.ListAPIView):
     queryset = EventAttendee.objects.all()
     serializer_class = EventAttendeeSerializer
+
+    def get(self, request, *args, **kwargs):
+        try:
+            a_eventattendee = self.queryset.get(pk=kwargs["pk"])
+            serializer = EventAttendeeSerializer(a_eventattendee, context={'request': request})
+            return Response(serializer.data)
+        except EventAttendee.DoesNotExist:
+            return Response(
+                data={
+                    "message": "EventAttendee with id: {} does not exist".format(kwargs["pk"])
+                },
+                status=status.HTTP_404_NOT_FOUND
+            )
 
     def post(self, request, *args, **kwargs):
         try:
