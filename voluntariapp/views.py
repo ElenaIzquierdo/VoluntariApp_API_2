@@ -3,7 +3,7 @@ from rest_framework import generics
 from rest_framework.parsers import MultiPartParser, JSONParser
 from .models import Event, CustomUser, Comment, ForumTheme, Rate, EventAttendee
 from .serializers import EventSerializer, UserSerializer, CommentSerializer, ForumThemeSerializer, RateSerializer, \
-                        EventAttendeeSerializer, EventGetSerializer
+                        EventAttendeeSerializer, EventGetSerializer, ForumThemeGetSerializer
 from django.http import JsonResponse
 from rest_framework import status
 from rest_framework.response import Response
@@ -145,14 +145,14 @@ class ForumThemeListView(generics.ListAPIView):
                     message = "The request is not valid."
                     explanation = "The parameter to filter status is not correct, possible values: open, closed"
                     return Response({'message': message, 'explanation': explanation}, status=status_code)
-            serializer = ForumThemeSerializer(queryset, many=True, context={'request': request})
+            serializer = ForumThemeGetSerializer(queryset, many=True, context={'request': request})
             return Response(serializer.data)
 
         except Event.DoesNotExist:
             content = {'please move along': 'nothing to see here'}
             return Response(content, status=status.HTTP_404_NOT_FOUND)
     def post(self,request):
-        data = {"creator":request.user.id,"created_date": timezone.now()}
+        data = {"creator":request.user.id,"created_date": timezone.now(), "finished":False}
         data.update(request.data)
         serializer = ForumThemeSerializer(data=data)
         if serializer.is_valid():

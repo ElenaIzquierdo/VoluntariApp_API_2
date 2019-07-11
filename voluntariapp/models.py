@@ -45,7 +45,7 @@ class ForumTheme(models.Model):
                                 null=True)
     title = models.CharField(blank=True, max_length=255)
     created_date = models.DateField(default=timezone.now)
-    finished = models.BooleanField(blank=True)
+    finished = models.BooleanField(default=False)
     description = models.TextField(blank=True, null=True)
     tasks = models.TextField(blank=True, null=True)
 

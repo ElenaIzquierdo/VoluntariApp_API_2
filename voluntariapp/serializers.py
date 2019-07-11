@@ -27,10 +27,15 @@ class CommentSerializer(serializers.ModelSerializer):
         model = models.Comment
         fields = ("id", "content", "forumtheme",)
 
+class ForumThemeGetSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = models.ForumTheme
+        fields = ("id","title","description","tasks","finished","created_date")
+
 class ForumThemeSerializer(serializers.ModelSerializer):
     class Meta:
         model = models.ForumTheme
-        fields = ("id","title","finished","description","tasks")
+        fields = ("id","title","description","tasks")
 
 class RateSerializer(serializers.ModelSerializer):
     class Meta:
