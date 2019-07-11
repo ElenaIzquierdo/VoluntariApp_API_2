@@ -39,7 +39,7 @@ class EventListView(generics.ListAPIView):
             return Response(content, status=status.HTTP_404_NOT_FOUND)
     def post(self,request):
         data = {"creator":request.user.id,"created_date": timezone.now()}
-        data.update(request.data.dict())
+        data.update(request.data)
         serializer = EventSerializer(data=data)
         if serializer.is_valid():
             serializer.save()
@@ -121,6 +121,30 @@ class ForumThemeListView(generics.ListAPIView):
     def get(self, request, *args, **kwargs):
         try:
             queryset = ForumTheme.objects.all()
+            sort_param = self.request.query_params.get('sort', None)
+            possible_param = ["title","created_date","-title","-created_date"]
+            if sort_param is not None:
+                if sort_param in possible_param:
+                    queryset = queryset.order_by(sort_param)
+                else:
+                    status_code = 400
+                    message = "The request is not valid."
+                    explanation = "The parameter to sort is not correct, possible values: title,created_date"
+                    return Response({'message': message, 'explanation': explanation}, status=status_code)
+
+            filter_status = self.request.query_params.get('status', None)
+            if filter_status is not None:
+                possible_status = ["open", "closed"]
+                if filter_status in possible_status:
+                    if filter_status == "open":
+                        queryset = queryset.filter(finished=False)
+                    elif filter_status == "closed":
+                        queryset = queryset.filter(finished=True)
+                else:
+                    status_code = 400
+                    message = "The request is not valid."
+                    explanation = "The parameter to filter status is not correct, possible values: open, closed"
+                    return Response({'message': message, 'explanation': explanation}, status=status_code)
             serializer = ForumThemeSerializer(queryset, many=True, context={'request': request})
             return Response(serializer.data)
 
@@ -129,7 +153,7 @@ class ForumThemeListView(generics.ListAPIView):
             return Response(content, status=status.HTTP_404_NOT_FOUND)
     def post(self,request):
         data = {"creator":request.user.id,"created_date": timezone.now()}
-        data.update(request.data.dict())
+        data.update(request.data)
         serializer = ForumThemeSerializer(data=data)
         if serializer.is_valid():
             serializer.save()
@@ -221,7 +245,7 @@ class ListCommentView(generics.ListAPIView):
 
     def post(self, request):
         data = {"author": request.user.id, "created_date": timezone.now()}
-        data.update(request.data.dict())
+        data.update(request.data)
         serializer = CommentSerializer(data=data)
         if serializer.is_valid():
             serializer.save()
@@ -425,19 +449,6 @@ class ListEventAttendeeView(generics.ListAPIView):
 class AttendeeView(generics.ListAPIView):
     queryset = EventAttendee.objects.all()
     serializer_class = EventAttendeeSerializer
-
-    def get(self, request, *args, **kwargs):
-        try:
-            a_eventattendee = self.queryset.get(pk=kwargs["pk"])
-            serializer = EventAttendeeSerializer(a_eventattendee, context={'request': request})
-            return Response(serializer.data)
-        except EventAttendee.DoesNotExist:
-            return Response(
-                data={
-                    "message": "EventAttendee with id: {} does not exist".format(kwargs["pk"])
-                },
-                status=status.HTTP_404_NOT_FOUND
-            )
 
     def post(self, request, *args, **kwargs):
         try:

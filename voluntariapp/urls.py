@@ -1,8 +1,11 @@
 # voluntariapp/urls.py
+from django.conf.urls import url
 from django.urls import include, path
 from . import views
+from rest_framework.documentation import include_docs_urls
 
 urlpatterns = [
+
     path('rest-auth/', include('rest_auth.urls')),
     path('user', views.UserListView.as_view()),
 

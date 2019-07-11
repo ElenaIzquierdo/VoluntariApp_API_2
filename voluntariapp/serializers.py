@@ -17,7 +17,7 @@ class EventGetSerializer(serializers.ModelSerializer):
 
     def get_attending(self, obj):
         attender = self.context['request'].user
-        return models.EventAttendee.objects.filter(event=obj, user=attender).exists()
+        return models.EventAttendee.objects.filter(event=obj, eventattendee_user=attender).exists()
     class Meta:
         model = models.Event
         fields = ('id','name','type','start_date','end_date','description','attendance','attending',)
