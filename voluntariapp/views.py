@@ -204,7 +204,7 @@ class CommentDetailView(generics.RetrieveUpdateDestroyAPIView):
         return Response(status=status.HTTP_200_OK)
 
     def delete(self, request, id_comment):
-        a_comment = get_object_or_404(pk=id_comment)
+        a_comment = get_object_or_404(Comment,pk=id_comment)
         if a_comment.author == request.user:
             a_comment.delete()
             return Response(status=status.HTTP_204_NO_CONTENT)
@@ -222,18 +222,11 @@ class CommentFromThemeView(generics.RetrieveUpdateDestroyAPIView):
     parser_classes = (MultiPartParser, JSONParser)
     serializer_class = CommentSerializer
 
-    def get(self, request, *args, **kwargs):
-        try:
-            comments = self.queryset.filter(forumtheme=kwargs["pk"])
-            serializer = CommentSerializer(comments, many=True, context={'request': request})
-            return Response(serializer.data)
-        except ForumTheme.DoesNotExist:
-            return Response(
-                data={
-                    "message": "Theme with id: {} does not exist".format(kwargs["pk"])
-                },
-                status=status.HTTP_404_NOT_FOUND
-            )
+    def get(self, request, id_forumtheme):
+        comments = self.queryset.filter(pk=id_forumtheme)
+        serializer = CommentSerializer(comments, many=True, context={'request': request})
+        return Response(data=serializer.data, status=status.HTTP_200_OK)
+
 
 
 class ListRateView(generics.ListAPIView):
@@ -241,22 +234,17 @@ class ListRateView(generics.ListAPIView):
     parser_classes = (MultiPartParser, JSONParser,)
     serializer_class = RateSerializer
 
-    def get(self, request, *args, **kwargs):
-        try:
-            queryset = Rate.objects.all()
-            serializer = RateSerializer(queryset, many=True, context={'request': request})
-            return Response(serializer.data)
+    def get(self, request):
+        queryset = Rate.objects.all()
+        serializer = RateSerializer(queryset, many=True, context={'request': request})
+        return Response(data=serializer.data,status=status.HTTP_200_OK)
 
-        except Rate.DoesNotExist:
-            content = {'please move along': 'nothing to see here'}
-            return Response(content, status=status.HTTP_404_NOT_FOUND)
 
     def post(self, request):
         serializer = RateSerializer(data=request.data)
-        if serializer.is_valid():
-            serializer.save()
-            return JsonResponse(serializer.data, status=status.HTTP_201_CREATED)
-        return JsonResponse(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return Response(serializer.validated_data, status=status.HTTP_201_CREATED)
 
 
 class RateDetailView(generics.RetrieveUpdateDestroyAPIView):
@@ -269,48 +257,25 @@ class RateDetailView(generics.RetrieveUpdateDestroyAPIView):
     parser_classes = (MultiPartParser, JSONParser)
     serializer_class = RateSerializer
 
-    def get(self, request, *args, **kwargs):
-        try:
-            a_rate = self.queryset.get(pk=kwargs["pk"])
-            serializer = RateSerializer(a_rate, context={'request': request})
-            return Response(serializer.data)
-        except Rate.DoesNotExist:
-            return Response(
-                data={
-                    "message": "Rate with id: {} does not exist".format(kwargs["pk"])
-                },
-                status=status.HTTP_404_NOT_FOUND
-            )
+    def get(self, request,id_rate):
+        a_rate = get_object_or_404(Rate, pk=id_rate)
+        serializer = RateSerializer(a_rate)
+        return Response(data=serializer.data,status=status.HTTP_200_OK)
 
-    def put(self, request, *args, **kwargs):
-        try:
-            a_rate = self.queryset.get(pk=kwargs["pk"])
-            serializer = RateSerializer()
-            data = request.data.dict()
-            updated_rate = serializer.update(a_rate, data)
-            return JsonResponse(RateSerializer(updated_rate).data, status=status.HTTP_200_OK)
 
-        except Comment.DoesNotExist:
-            return JsonResponse(
-                data={
-                    "message": "Rate with id: {} does not exist".format(kwargs["pk"])
-                },
-                status=status.HTTP_404_NOT_FOUND
-            )
+    def patch(self, request, id_rate):
+        a_rate = get_object_or_404(Rate, pk=id_rate)
+        serializer = RateSerializer(a_rate, data=request.data, partial=True)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return Response(status=status.HTTP_200_OK)
 
-    def delete(self, request, *args, **kwargs):
-        try:
-            a_rate = self.queryset.get(pk=kwargs["pk"])
-            a_rate.delete()
-            return Response(status=status.HTTP_204_NO_CONTENT)
+    def delete(self, request, id_rate):
+        a_rate = get_object_or_404(pk=id_rate)
+        a_rate.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
 
-        except Comment.DoesNotExist:
-            return Response(
-                data={
-                    "message": "Rate with id: {} does not exist".format(kwargs["pk"])
-                },
-                status=status.HTTP_404_NOT_FOUND
-            )
+
 
 
 class RateFromEventView(generics.RetrieveUpdateDestroyAPIView):
@@ -318,19 +283,10 @@ class RateFromEventView(generics.RetrieveUpdateDestroyAPIView):
     parser_classes = (MultiPartParser, JSONParser)
     serializer_class = RateSerializer
 
-    def get(self, request, *args, **kwargs):
-        try:
-            a_rate = Event.objects.get(pk=kwargs["pk"])
-            rates = self.queryset.filter(event=kwargs["pk"])
-            serializer = RateSerializer(rates, many=True, context={'request': request})
-            return Response(serializer.data)
-        except Event.DoesNotExist:
-            return Response(
-                data={
-                    "message": "Event with id: {} does not exist".format(kwargs["pk"])
-                },
-                status=status.HTTP_404_NOT_FOUND
-            )
+    def get(self, request, id_event):
+        rates = self.queryset.filter(event=id_event)
+        serializer = RateSerializer(rates, many=True, context={'request': request})
+        return Response(data=serializer.data, status=status.HTTP_200_OK)
 
 
 class ListEventAttendeeView(generics.ListAPIView):

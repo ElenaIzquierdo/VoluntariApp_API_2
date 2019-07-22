@@ -16,12 +16,12 @@ urlpatterns = [
     path('forum/<id_forumtheme>', views.ForumThemeDetailView.as_view(), name="forumtheme-detail"),
 
     path('comment', views.ListCommentView.as_view(), name="comments-all"),
-    path('comment/<int:pk>', views.CommentDetailView.as_view(), name="comments-detail"),
-    path('comment/forum/<int:pk>', views.CommentFromThemeView.as_view(), name="comments-from-theme"),
+    path('comment/<id_rate>', views.CommentDetailView.as_view(), name="comments-detail"),
+    path('comment/forum/<id_forumtheme>', views.CommentFromThemeView.as_view(), name="comments-from-theme"),
 
     path('rate', views.ListRateView.as_view(), name="rate-all"),
-    path('rate/<int:pk>', views.RateDetailView.as_view(), name="rate-detail"),
-    path('rate/event/<int:pk>', views.RateFromEventView.as_view(), name="rate-from-event"),
+    path('rate/<id_rate>', views.RateDetailView.as_view(), name="rate-detail"),
+    path('rate/event/<id_event>', views.RateFromEventView.as_view(), name="rate-from-event"),
 
     path('eventattendee', views.ListEventAttendeeView.as_view(), name="eventattendee-all"),
     path('event/<int:pk>/attendee', views.AttendeeView.as_view(), name="eventattendee-detail"),
