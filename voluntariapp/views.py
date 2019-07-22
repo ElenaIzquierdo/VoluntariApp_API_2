@@ -66,8 +66,6 @@ class EventDetailView(generics.RetrieveUpdateDestroyAPIView):
         serializer.save()
         return Response(status= status.HTTP_200_OK)
 
-
-
     def delete(self, request, id_event):
         a_event = get_object_or_404(Event, pk=id_event)
         if a_event.creator == request.user:
@@ -294,47 +292,26 @@ class ListEventAttendeeView(generics.ListAPIView):
     parser_classes = (MultiPartParser, JSONParser,)
     serializer_class = EventAttendeeSerializer
 
-    def get(self, request, *args, **kwargs):
-        try:
-            queryset = EventAttendee.objects.all()
-            serializer = EventAttendeeSerializer(queryset, many=True, context={'request': request})
-            return Response(serializer.data)
-
-        except EventAttendee.DoesNotExist:
-            content = {'please move along': 'nothing to see here'}
-            return Response(content, status=status.HTTP_404_NOT_FOUND)
+    def get(self, request):
+        queryset = EventAttendee.objects.all()
+        serializer = EventAttendeeSerializer(queryset, many=True, context={'request': request})
+        return Response(data=serializer.data, status=status.HTTP_200_OK)
 
 
 class AttendeeView(generics.ListAPIView):
     queryset = EventAttendee.objects.all()
     serializer_class = EventAttendeeSerializer
 
-    def post(self, request, *args, **kwargs):
-        try:
-            a_event = Event.objects.get(pk=kwargs["pk"])
-            EventAttendee.objects.create(user=request.user, event=a_event)
-            return Response(status=status.HTTP_201_CREATED)
-        except Event.DoesNotExist:
-            return Response(
-                data={
-                    "message": "Event with id: {} does not exist".format(kwargs["pk"])
-                },
-                status=status.HTTP_404_NOT_FOUND
-            )
+    def post(self, request, id_event):
+        a_event = get_object_or_404(Event, pk=id_event)
+        EventAttendee.objects.create(user=request.user, event=a_event)
+        return Response(status=status.HTTP_201_CREATED)
+
 
     "UnAttend function"
 
-    def delete(self, request, *args, **kwargs):
-        try:
-            event = Event.objects.get(pk=kwargs["pk"])
-            a_attendee = self.queryset.get(event=event, user=request.user)
-            a_attendee.delete()
-            return Response(status=status.HTTP_204_NO_CONTENT)
-        except (Event.DoesNotExist, EventAttendee.DoesNotExist) as e:
-            return Response(
-                data={
-                    "message": "Event with id: {} does not exist or EventAttendee from user: {} does not exist".format(
-                        kwargs["pk"], request.user)
-                },
-                status=status.HTTP_404_NOT_FOUND
-            )
+    def delete(self, request, id_event):
+        event = get_object_or_404(Event, pk=id_event)
+        a_attendee = self.queryset.get(event=event, user=request.user)
+        a_attendee.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
