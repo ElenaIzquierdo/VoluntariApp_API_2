@@ -24,5 +24,5 @@ urlpatterns = [
     path('rate/event/<id_event>', views.RateFromEventView.as_view(), name="rate-from-event"),
 
     path('eventattendee', views.ListEventAttendeeView.as_view(), name="eventattendee-all"),
-    path('event/<int:pk>/attendee', views.AttendeeView.as_view(), name="eventattendee-detail"),
+    path('event/<id_event>/attendee', views.AttendeeView.as_view(), name="eventattendee-detail"),
 ]
