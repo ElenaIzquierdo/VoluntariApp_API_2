@@ -1,13 +1,14 @@
 # voluntariapp/views.py
 from rest_framework import generics
+from rest_framework.generics import get_object_or_404
 from rest_framework.parsers import MultiPartParser, JSONParser
 from .models import Event, CustomUser, Comment, ForumTheme, Rate, EventAttendee
 from .serializers import EventSerializer, UserSerializer, CommentSerializer, ForumThemeSerializer, RateSerializer, \
-                        EventAttendeeSerializer, EventGetSerializer, ForumThemeGetSerializer
-from django.http import JsonResponse
+    EventAttendeeSerializer, EventGetSerializer, ForumThemeGetSerializer
 from rest_framework import status
 from rest_framework.response import Response
 from django.utils import timezone
+
 
 class UserListView(generics.ListCreateAPIView):
     queryset = CustomUser.objects.all()
@@ -28,23 +29,19 @@ class EventListView(generics.ListAPIView):
     parser_classes = (MultiPartParser, JSONParser,)
     serializer_class = EventSerializer
 
-    def get(self, request, *args, **kwargs):
-        try:
-            queryset = Event.objects.all()
-            serializer = EventGetSerializer(queryset, many=True, context={'request': request})
-            return Response(serializer.data)
+    def get(self, request):
+        queryset = Event.objects.all()
+        serializer = EventGetSerializer(queryset, many=True, context={'request': request})
+        return Response(data=serializer.data, status=status.HTTP_200_OK)
 
-        except Event.DoesNotExist:
-            content = {'please move along': 'nothing to see here'}
-            return Response(content, status=status.HTTP_404_NOT_FOUND)
-    def post(self,request):
-        data = {"creator":request.user.id,"created_date": timezone.now()}
+    def post(self, request):
+        data = {"creator": request.user.id, "created_date": timezone.now()}
         data.update(request.data)
         serializer = EventSerializer(data=data)
-        if serializer.is_valid():
-            serializer.save()
-            return Response(serializer.data, status=status.HTTP_201_CREATED)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return Response(serializer.validated_data, status=status.HTTP_201_CREATED)
+
 
 class EventDetailView(generics.RetrieveUpdateDestroyAPIView):
     """
@@ -56,109 +53,77 @@ class EventDetailView(generics.RetrieveUpdateDestroyAPIView):
     parser_classes = (MultiPartParser, JSONParser)
     serializer_class = EventSerializer
 
-    def get(self, request, *args, **kwargs):
-        try:
-            a_event = self.queryset.get(pk=kwargs["pk"])
-            serializer = EventSerializer(a_event, context={'request': request})
-            return Response(serializer.data)
-        except Event.DoesNotExist:
+    def get(self, request, id_event):
+        a_event = get_object_or_404(Event, pk=id_event)
+        serializer = EventSerializer(a_event)
+        return Response(data=serializer.data, status= status.HTTP_200_OK)
+
+
+    def patch(self, request, id_event):
+        a_event = get_object_or_404(Event, pk=id_event)
+        serializer = EventSerializer(a_event, data=request.data, partial=True)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return Response(status= status.HTTP_200_OK)
+
+
+
+    def delete(self, request, id_event):
+        a_event = get_object_or_404(Event, pk=id_event)
+        if a_event.creator == request.user:
+            a_event.delete()
+            return Response(status=status.HTTP_204_NO_CONTENT)
+        else:
             return Response(
                 data={
-                    "message": "Event with id: {} does not exist".format(kwargs["pk"])
+                    "message": "You are not the original author of the event {}!"
                 },
-                status=status.HTTP_404_NOT_FOUND
+                status=status.HTTP_403_FORBIDDEN
             )
 
-    def put(self, request, *args, **kwargs):
-        try:
-            a_event = self.queryset.get(pk=kwargs["pk"])
-            serializer = EventSerializer()
-            if a_event.creator == request.user:
-                data = request.data.dict()
-                updated_event = serializer.update(a_event, data)
-                return JsonResponse(EventSerializer(updated_event).data, status=status.HTTP_200_OK)
-            else:
-                return JsonResponse(
-                    data={
-                        "message": "You are not the author of the event {}!".format(kwargs["pk"])
-                    },
-                    status=status.HTTP_403_FORBIDDEN
-                )
-        except Event.DoesNotExist:
-            return JsonResponse(
-                data={
-                    "message": "Event with id: {} does not exist".format(kwargs["pk"])
-                },
-                status=status.HTTP_404_NOT_FOUND
-            )
-
-    def delete(self, request, *args, **kwargs):
-        try:
-            a_event = self.queryset.get(pk=kwargs["pk"])
-            if a_event.creator == request.user:
-                a_event.delete()
-                return Response(status=status.HTTP_204_NO_CONTENT)
-            else:
-                return Response(
-                    data={
-                        "message": "You are not the original author of the event {}!".format(kwargs["pk"])
-                    },
-                    status=status.HTTP_403_FORBIDDEN
-                )
-        except Event.DoesNotExist:
-            return Response(
-                data={
-                    "message": "Event with id: {} does not exist".format(kwargs["pk"])
-                },
-                status=status.HTTP_404_NOT_FOUND
-            )
 
 class ForumThemeListView(generics.ListAPIView):
     queryset = ForumTheme.objects.all()
     parser_classes = (MultiPartParser, JSONParser,)
     serializer_class = ForumThemeSerializer
 
-    def get(self, request, *args, **kwargs):
-        try:
-            queryset = ForumTheme.objects.all()
-            sort_param = self.request.query_params.get('sort', None)
-            possible_param = ["title","created_date","-title","-created_date"]
-            if sort_param is not None:
-                if sort_param in possible_param:
-                    queryset = queryset.order_by(sort_param)
-                else:
-                    status_code = 400
-                    message = "The request is not valid."
-                    explanation = "The parameter to sort is not correct, possible values: title,created_date"
-                    return Response({'message': message, 'explanation': explanation}, status=status_code)
+    def get(self, request):
+        queryset = ForumTheme.objects.all()
+        sort_param = self.request.query_params.get('sort', None)
+        possible_param = ["title", "created_date", "-title", "-created_date"]
+        if sort_param is not None:
+            if sort_param in possible_param:
+                queryset = queryset.order_by(sort_param)
+            else:
+                status_code = 400
+                message = "The request is not valid."
+                explanation = "The parameter to sort is not correct, possible values: title,created_date"
+                return Response({'message': message, 'explanation': explanation}, status=status_code)
 
-            filter_status = self.request.query_params.get('status', None)
-            if filter_status is not None:
-                possible_status = ["open", "closed"]
-                if filter_status in possible_status:
-                    if filter_status == "open":
-                        queryset = queryset.filter(finished=False)
-                    elif filter_status == "closed":
-                        queryset = queryset.filter(finished=True)
-                else:
-                    status_code = 400
-                    message = "The request is not valid."
-                    explanation = "The parameter to filter status is not correct, possible values: open, closed"
-                    return Response({'message': message, 'explanation': explanation}, status=status_code)
-            serializer = ForumThemeGetSerializer(queryset, many=True, context={'request': request})
-            return Response(serializer.data)
+        filter_status = self.request.query_params.get('status', None)
+        if filter_status is not None:
+            possible_status = ["open", "closed"]
+            if filter_status in possible_status:
+                if filter_status == "open":
+                    queryset = queryset.filter(finished=False)
+                elif filter_status == "closed":
+                    queryset = queryset.filter(finished=True)
+            else:
+                status_code = 400
+                message = "The request is not valid."
+                explanation = "The parameter to filter status is not correct, possible values: open, closed"
+                return Response({'message': message, 'explanation': explanation}, status=status_code)
+        serializer = ForumThemeGetSerializer(queryset, many=True, context={'request': request})
+        return Response(data=serializer.data,status=status.HTTP_200_OK)
 
-        except Event.DoesNotExist:
-            content = {'please move along': 'nothing to see here'}
-            return Response(content, status=status.HTTP_404_NOT_FOUND)
-    def post(self,request):
-        data = {"creator":request.user.id,"created_date": timezone.now(), "finished":False}
+    def post(self, request):
+        data = {"creator": request.user.id, "created_date": timezone.now(), "finished": False}
         data.update(request.data)
         serializer = ForumThemeSerializer(data=data)
-        if serializer.is_valid():
-            serializer.save()
-            return Response(serializer.data, status=status.HTTP_201_CREATED)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return Response(serializer.validated_data, status=status.HTTP_201_CREATED)
+
 
 class ForumThemeDetailView(generics.RetrieveUpdateDestroyAPIView):
     """
@@ -170,63 +135,32 @@ class ForumThemeDetailView(generics.RetrieveUpdateDestroyAPIView):
     parser_classes = (MultiPartParser, JSONParser)
     serializer_class = ForumThemeSerializer
 
-    def get(self, request, *args, **kwargs):
-        try:
-            a_theme = self.queryset.get(pk=kwargs["pk"])
-            serializer = ForumThemeSerializer(a_theme, context={'request': request})
-            return Response(serializer.data)
-        except ForumTheme.DoesNotExist:
+    def get(self, request, id_forumtheme):
+        a_theme = get_object_or_404(ForumTheme,pk=id_forumtheme)
+        serializer = ForumThemeSerializer(a_theme)
+        return Response(data=serializer.data,status=status.HTTP_200_OK)
+
+
+    def patch(self, request, id_forumtheme):
+        a_theme = get_object_or_404(ForumTheme,pk=id_forumtheme)
+        serializer = ForumThemeSerializer(a_theme,data=request.data,partial=True)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return Response(status=status.HTTP_200_OK)
+
+
+    def delete(self, request, id_forumtheme):
+        a_theme = get_object_or_404(ForumTheme,pk=id_forumtheme)
+        if a_theme.creator == request.user:
+            a_theme.delete()
+            return Response(status=status.HTTP_204_NO_CONTENT)
+        else:
             return Response(
                 data={
-                    "message": "Forum Theme with id: {} does not exist".format(kwargs["pk"])
+                    "message": "You are not the original author of theme {}!".format(kwargs["pk"])
                 },
-                status=status.HTTP_404_NOT_FOUND
+                status=status.HTTP_403_FORBIDDEN
             )
-
-    def put(self, request, *args, **kwargs):
-        try:
-            a_theme = self.queryset.get(pk=kwargs["pk"])
-            serializer = ForumThemeSerializer()
-            if a_theme.creator == request.user:
-                data = request.data.dict()
-                updated_theme = serializer.update(a_theme, data)
-                return JsonResponse(ForumThemeSerializer(updated_theme).data, status=status.HTTP_200_OK)
-            else:
-                return JsonResponse(
-                    data={
-                        "message": "You are not the author of the theme {}!".format(kwargs["pk"])
-                    },
-                    status=status.HTTP_403_FORBIDDEN
-                )
-        except ForumTheme.DoesNotExist:
-            return JsonResponse(
-                data={
-                    "message": "Theme with id: {} does not exist".format(kwargs["pk"])
-                },
-                status=status.HTTP_404_NOT_FOUND
-            )
-
-    def delete(self, request, *args, **kwargs):
-        try:
-            a_theme = self.queryset.get(pk=kwargs["pk"])
-            if a_theme.creator == request.user:
-                a_theme.delete()
-                return Response(status=status.HTTP_204_NO_CONTENT)
-            else:
-                return Response(
-                    data={
-                        "message": "You are not the original author of theme {}!".format(kwargs["pk"])
-                    },
-                    status=status.HTTP_403_FORBIDDEN
-                )
-        except ForumTheme.DoesNotExist:
-            return Response(
-                data={
-                    "message": "Theme with id: {} does not exist".format(kwargs["pk"])
-                },
-                status=status.HTTP_404_NOT_FOUND
-            )
-
 
 class ListCommentView(generics.ListAPIView):
     queryset = Comment.objects.all()
@@ -251,6 +185,7 @@ class ListCommentView(generics.ListAPIView):
             serializer.save()
             return JsonResponse(serializer.data, status=status.HTTP_201_CREATED)
         return JsonResponse(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
 
 class CommentDetailView(generics.RetrieveUpdateDestroyAPIView):
     """
@@ -306,7 +241,7 @@ class CommentDetailView(generics.RetrieveUpdateDestroyAPIView):
                 return Response(status=status.HTTP_204_NO_CONTENT)
             else:
                 return Response(
-                    data = {
+                    data={
                         "message": "You are not the original author of comment {}!".format(kwargs["pk"])
                     },
                     status=status.HTTP_403_FORBIDDEN
@@ -318,6 +253,7 @@ class CommentDetailView(generics.RetrieveUpdateDestroyAPIView):
                 },
                 status=status.HTTP_404_NOT_FOUND
             )
+
 
 class CommentFromThemeView(generics.RetrieveUpdateDestroyAPIView):
     queryset = Comment.objects.all()
@@ -336,6 +272,7 @@ class CommentFromThemeView(generics.RetrieveUpdateDestroyAPIView):
                 },
                 status=status.HTTP_404_NOT_FOUND
             )
+
 
 class ListRateView(generics.ListAPIView):
     queryset = Rate.objects.all()
@@ -358,6 +295,7 @@ class ListRateView(generics.ListAPIView):
             serializer.save()
             return JsonResponse(serializer.data, status=status.HTTP_201_CREATED)
         return JsonResponse(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
 
 class RateDetailView(generics.RetrieveUpdateDestroyAPIView):
     """
@@ -412,6 +350,7 @@ class RateDetailView(generics.RetrieveUpdateDestroyAPIView):
                 status=status.HTTP_404_NOT_FOUND
             )
 
+
 class RateFromEventView(generics.RetrieveUpdateDestroyAPIView):
     queryset = Rate.objects.all()
     parser_classes = (MultiPartParser, JSONParser)
@@ -431,6 +370,7 @@ class RateFromEventView(generics.RetrieveUpdateDestroyAPIView):
                 status=status.HTTP_404_NOT_FOUND
             )
 
+
 class ListEventAttendeeView(generics.ListAPIView):
     queryset = EventAttendee.objects.all()
     parser_classes = (MultiPartParser, JSONParser,)
@@ -445,6 +385,7 @@ class ListEventAttendeeView(generics.ListAPIView):
         except EventAttendee.DoesNotExist:
             content = {'please move along': 'nothing to see here'}
             return Response(content, status=status.HTTP_404_NOT_FOUND)
+
 
 class AttendeeView(generics.ListAPIView):
     queryset = EventAttendee.objects.all()
@@ -479,8 +420,3 @@ class AttendeeView(generics.ListAPIView):
                 },
                 status=status.HTTP_404_NOT_FOUND
             )
-
-
-
-
-

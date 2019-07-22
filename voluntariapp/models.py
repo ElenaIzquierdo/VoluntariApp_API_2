@@ -20,7 +20,7 @@ class Event(models.Model):
                                 null=True)
     name = models.CharField(blank=True, max_length=255)
     type = models.CharField(blank=True, max_length=255)
-    created_date = models.DateField(default=timezone.now)
+    created_date = models.DateField(auto_now_add=True)
     start_date = models.DateField(default=timezone.now)
     end_date = models.DateField(default=timezone.now)
     description = models.TextField(blank=True,null=True)

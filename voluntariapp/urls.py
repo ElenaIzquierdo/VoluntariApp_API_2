@@ -10,10 +10,10 @@ urlpatterns = [
     path('user', views.UserListView.as_view()),
 
     path('event', views.EventListView.as_view()),
-    path('event/<int:pk>', views.EventDetailView.as_view(), name="comments-detail"),
+    path('event/<id_event>', views.EventDetailView.as_view(), name="comments-detail"),
 
     path('forum', views.ForumThemeListView.as_view(), name="forum"),
-    path('forum/<int:pk>', views.ForumThemeDetailView.as_view(), name="forumtheme-detail"),
+    path('forum/<id_forumtheme>', views.ForumThemeDetailView.as_view(), name="forumtheme-detail"),
 
     path('comment', views.ListCommentView.as_view(), name="comments-all"),
     path('comment/<int:pk>', views.CommentDetailView.as_view(), name="comments-detail"),
