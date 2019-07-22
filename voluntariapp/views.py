@@ -168,24 +168,18 @@ class ListCommentView(generics.ListAPIView):
     serializer_class = CommentSerializer
 
     def get(self, request, *args, **kwargs):
-        try:
-            queryset = Comment.objects.all()
-            serializer = CommentSerializer(queryset, many=True, context={'request': request})
-            return Response(serializer.data)
+        queryset = Comment.objects.all()
+        serializer = CommentSerializer(queryset, many=True, context={'request': request})
+        return Response(data=serializer.data,status=status.HTTP_200_OK)
 
-        except Comment.DoesNotExist:
-            content = {'please move along': 'nothing to see here'}
-            return Response(content, status=status.HTTP_404_NOT_FOUND)
 
     def post(self, request):
         data = {"author": request.user.id, "created_date": timezone.now()}
         data.update(request.data)
         serializer = CommentSerializer(data=data)
-        if serializer.is_valid():
-            serializer.save()
-            return JsonResponse(serializer.data, status=status.HTTP_201_CREATED)
-        return JsonResponse(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return Response(serializer.validated_data, status=status.HTTP_201_CREATED)
 
 class CommentDetailView(generics.RetrieveUpdateDestroyAPIView):
     """
@@ -197,61 +191,29 @@ class CommentDetailView(generics.RetrieveUpdateDestroyAPIView):
     parser_classes = (MultiPartParser, JSONParser)
     serializer_class = CommentSerializer
 
-    def get(self, request, *args, **kwargs):
-        try:
-            a_comment = self.queryset.get(pk=kwargs["pk"])
-            serializer = CommentSerializer(a_comment, context={'request': request})
-            return Response(serializer.data)
-        except Comment.DoesNotExist:
+    def get(self, request, id_comment):
+        a_comment = get_object_or_404(Comment,pk=id_comment)
+        serializer = CommentSerializer(a_comment, context={'request': request})
+        return Response(data=serializer.data, status=status.HTTP_200_OK)
+
+    def patch(self, request, id_comment):
+        a_comment = get_object_or_404(Comment, pk=id_comment)
+        serializer = CommentSerializer(a_comment, data=request.data, partial=True)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return Response(status=status.HTTP_200_OK)
+
+    def delete(self, request, id_comment):
+        a_comment = get_object_or_404(pk=id_comment)
+        if a_comment.author == request.user:
+            a_comment.delete()
+            return Response(status=status.HTTP_204_NO_CONTENT)
+        else:
             return Response(
                 data={
-                    "message": "Comment with id: {} does not exist".format(kwargs["pk"])
+                    "message": "You are not the original author of comment {}!".format(kwargs["pk"])
                 },
-                status=status.HTTP_404_NOT_FOUND
-            )
-
-    def put(self, request, *args, **kwargs):
-        try:
-            a_comment = self.queryset.get(pk=kwargs["pk"])
-            serializer = CommentSerializer()
-            if a_comment.author == request.user:
-                data = request.data.dict()
-                updated_comment = serializer.update(a_comment, data)
-                return JsonResponse(CommentSerializer(updated_comment).data, status=status.HTTP_200_OK)
-            else:
-                return JsonResponse(
-                    data={
-                        "message": "You are not the author of comment {}!".format(kwargs["pk"])
-                    },
-                    status=status.HTTP_403_FORBIDDEN
-                )
-        except Comment.DoesNotExist:
-            return JsonResponse(
-                data={
-                    "message": "Comment with id: {} does not exist".format(kwargs["pk"])
-                },
-                status=status.HTTP_404_NOT_FOUND
-            )
-
-    def delete(self, request, *args, **kwargs):
-        try:
-            a_comment = self.queryset.get(pk=kwargs["pk"])
-            if a_comment.author == request.user:
-                a_comment.delete()
-                return Response(status=status.HTTP_204_NO_CONTENT)
-            else:
-                return Response(
-                    data={
-                        "message": "You are not the original author of comment {}!".format(kwargs["pk"])
-                    },
-                    status=status.HTTP_403_FORBIDDEN
-                )
-        except Comment.DoesNotExist:
-            return Response(
-                data={
-                    "message": "Comment with id: {} does not exist".format(kwargs["pk"])
-                },
-                status=status.HTTP_404_NOT_FOUND
+                status=status.HTTP_403_FORBIDDEN
             )
 
 
