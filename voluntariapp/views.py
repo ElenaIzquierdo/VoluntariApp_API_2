@@ -221,7 +221,7 @@ class CommentFromThemeView(generics.RetrieveUpdateDestroyAPIView):
     serializer_class = CommentSerializer
 
     def get(self, request, id_forumtheme):
-        comments = self.queryset.filter(pk=id_forumtheme)
+        comments = self.queryset.filter(forumtheme=id_forumtheme)
         serializer = CommentSerializer(comments, many=True, context={'request': request})
         return Response(data=serializer.data, status=status.HTTP_200_OK)
 
